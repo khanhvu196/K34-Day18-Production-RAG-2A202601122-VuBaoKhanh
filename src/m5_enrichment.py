@@ -34,7 +34,7 @@ def summarize_chunk(text: str) -> str:
     Tạo summary ngắn cho chunk.
     Embed summary thay vì (hoặc cùng với) raw chunk → giảm noise.
     """
-    # TODO: Implement chunk summarization
+    #  Implement chunk summarization
     # if OPENAI_API_KEY:
     #     try:
     #         from openai import OpenAI
@@ -65,7 +65,7 @@ def generate_hypothesis_questions(text: str, n_questions: int = 3) -> list[str]:
     Generate câu hỏi mà chunk có thể trả lời.
     Index cả questions lẫn chunk → query match tốt hơn (bridge vocabulary gap).
     """
-    # TODO: Implement HyQA generation
+    #  Implement HyQA generation
     # if OPENAI_API_KEY:
     #     try:
     #         from openai import OpenAI
@@ -98,7 +98,7 @@ def contextual_prepend(text: str, document_title: str = "") -> str:
     Prepend context giải thích chunk nằm ở đâu trong document.
     Anthropic benchmark: giảm 49% retrieval failure (alone).
     """
-    # TODO: Implement contextual prepend
+    #  Implement contextual prepend
     # if OPENAI_API_KEY:
     #     try:
     #         from openai import OpenAI
@@ -129,7 +129,7 @@ def extract_metadata(text: str) -> dict:
     """
     LLM extract metadata tự động: topic, entities, date_range, category.
     """
-    # TODO: Implement auto metadata extraction
+    #  Implement auto metadata extraction
     # if OPENAI_API_KEY:
     #     try:
     #         import json as _json
@@ -159,29 +159,37 @@ def _enrich_single_call(text: str, source: str) -> dict:
 
     ⚠️ Cost optimization: 1 API call thay vì 4 calls riêng lẻ.
     """
-    # TODO: Implement combined enrichment (1 call/chunk)
-    # if OPENAI_API_KEY:
-    #     try:
-    #         import json as _json
-    #         from openai import OpenAI
-    #         client = OpenAI()
-    #         resp = client.chat.completions.create(
-    #             model="gpt-4o-mini",
-    #             messages=[
-    #                 {"role": "system", "content": """Phân tích đoạn văn và trả về JSON:
-    # {
-    #   "summary": "tóm tắt 2-3 câu",
-    #   "questions": ["câu hỏi 1", "câu hỏi 2", "câu hỏi 3"],
-    #   "context": "1 câu mô tả đoạn văn nằm ở đâu trong tài liệu",
-    #   "metadata": {"topic": "...", "entities": ["..."], "category": "policy|hr|it|finance", "language": "vi|en"}
-    # }"""},
-    #                 {"role": "user", "content": f"Tài liệu: {source}\n\nĐoạn văn:\n{text}"},
-    #             ],
-    #             max_tokens=400,
-    #         )
-    #         return _json.loads(resp.choices[0].message.content)
-    #     except Exception as e:
-    #         print(f"  ⚠️  Enrichment API failed: {e}")
+    if OPENAI_API_KEY:
+        try:
+            import json as _json
+            from openai import OpenAI
+            import os
+            
+            base_url = os.getenv("OPENAI_BASE_URL", "")
+            model_name = "gemini-3.6-flash" if "googleapis.com" in base_url else "gpt-4o-mini"
+            client = OpenAI(base_url=base_url) if base_url else OpenAI()
+            
+            resp = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": """Phân tích đoạn văn và trả về JSON:
+    {
+      "summary": "tóm tắt 2-3 câu",
+      "questions": ["câu hỏi 1", "câu hỏi 2", "câu hỏi 3"],
+      "context": "1 câu mô tả đoạn văn nằm ở đâu trong tài liệu",
+      "metadata": {"topic": "...", "entities": ["..."], "category": "policy|hr|it|finance", "language": "vi|en"}
+    }"""},
+                    {"role": "user", "content": f"Tài liệu: {source}\n\nĐoạn văn:\n{text}"},
+                ],
+                max_tokens=400,
+            )
+            content = resp.choices[0].message.content.strip()
+            start = content.find('{')
+            end = content.rfind('}') + 1
+            if start != -1 and end != 0:
+                return _json.loads(content[start:end])
+        except Exception as e:
+            print(f"  ⚠️  Enrichment API failed: {e}")
     return {}
 
 

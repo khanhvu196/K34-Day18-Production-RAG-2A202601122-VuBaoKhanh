@@ -40,6 +40,9 @@ def main():
         from openai import OpenAI
         llm_client = OpenAI()
 
+    base_url = os.getenv("OPENAI_BASE_URL", "")
+    model_name = "gemini-3.6-flash" if "googleapis.com" in base_url else "gpt-4o-mini"
+
     for i, item in enumerate(test_set):
         results = search.search(item["question"], top_k=3, collection=NAIVE_COLLECTION)
         contexts = [r.text for r in results]
@@ -47,7 +50,7 @@ def main():
         if llm_client and contexts:
             try:
                 context_str = "\n\n".join(contexts)
-                resp = llm_client.chat.completions.create(model="gpt-4o-mini", messages=[
+                resp = llm_client.chat.completions.create(model=model_name, messages=[
                     {"role": "system", "content": "Trả lời CHỈ dựa trên context. Nếu không có → nói 'Không tìm thấy.'"},
                     {"role": "user", "content": f"Context:\n{context_str}\n\nCâu hỏi: {item['question']}"},
                 ])

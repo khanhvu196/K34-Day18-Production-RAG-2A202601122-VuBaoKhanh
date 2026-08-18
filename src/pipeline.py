@@ -68,9 +68,13 @@ def run_query(query: str, search: HybridSearch, reranker: CrossEncoderReranker) 
     if OPENAI_API_KEY and contexts:
         try:
             from openai import OpenAI
-            client = OpenAI()
+            import os
+            base_url = os.getenv("OPENAI_BASE_URL", "")
+            model_name = "gemini-3.6-flash" if "googleapis.com" in base_url else "gpt-4o-mini"
+            client = OpenAI(base_url=base_url) if base_url else OpenAI()
+            
             context_str = "\n\n".join(contexts)
-            resp = client.chat.completions.create(model="gpt-4o-mini", messages=[
+            resp = client.chat.completions.create(model=model_name, messages=[
                 {"role": "system", "content": "Trả lời CHỈ dựa trên context. Nếu không có → nói 'Không tìm thấy.'"},
                 {"role": "user", "content": f"Context:\n{context_str}\n\nCâu hỏi: {query}"},
             ])
